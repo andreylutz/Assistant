@@ -3,6 +3,12 @@ import config from "config";
 import { createReadStream } from "fs";
 
 class ChatGPT {
+  roles = {
+    ASSISTANT: "assistant",
+    USER: "user",
+    SYSTEM: "system",
+  };
+
   constructor(apiKey) {
     const configuration = new Configuration({
       apiKey,
@@ -10,7 +16,19 @@ class ChatGPT {
 
     this.gpt = new OpenAIApi(configuration);
   }
-  chat() {}
+
+  async chat(messages) {
+    try {
+      const response = await this.gpt.createChatCompletion({
+        model: "gpt-3.5-turbo",
+        messages,
+      });
+
+      return response.data.choices[0].message;
+    } catch (error) {
+      console.log("Error while gpt chat", error.message);
+    }
+  }
 
   async transcription(filepath) {
     try {
