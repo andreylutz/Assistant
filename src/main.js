@@ -4,7 +4,6 @@ import config from "config";
 import { ogg } from "./ogg.js";
 import { openAi } from "./openai.js";
 import { code } from "telegraf/format";
-import { Loader } from "./loader.js";
 
 const INITIAL_SESSION = {
   messages: [],
@@ -26,10 +25,9 @@ bot.command("new", async (context) => {
 });
 
 bot.on(message("voice"), async (context) => {
-  const loader = new Loader(context);
   context.session ??= INITIAL_SESSION;
   try {
-    await loader.show();
+    await context.reply(code("Уже ищу ответ"));
     const link = await context.telegram.getFileLink(
       context.message.voice.file_id
     );
@@ -42,7 +40,6 @@ bot.on(message("voice"), async (context) => {
     const response = await openAi.chat(context.session.messages);
 
     await context.reply(code(`Вот ответ на ваш запрос: \n ${text}`));
-    loader.hide();
 
     context.session.messages.push({
       role: openAi.roles.ASSISTANT,
@@ -56,10 +53,9 @@ bot.on(message("voice"), async (context) => {
 });
 
 bot.on(message("text"), async (context) => {
-  const loader = new Loader(context);
   context.session ??= INITIAL_SESSION;
   try {
-    await loader.show();
+    await context.reply(code("Уже ищу ответ"));
     context.session.messages.push({
       role: openAi.roles.USER,
       content: context.message.text,
@@ -70,7 +66,6 @@ bot.on(message("text"), async (context) => {
       code(`Вот ответ на ваш запрос: \n ${context.message.text}`)
     );
 
-    loader.hide();
     context.session.messages.push({
       role: openAi.roles.ASSISTANT,
       content: response.content,
