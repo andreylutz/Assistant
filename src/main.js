@@ -4,6 +4,7 @@ import config from "config";
 import { ogg } from "./ogg.js";
 import { openAi } from "./openai.js";
 import { code } from "telegraf/format";
+import { Loader } from "./loader.js";
 
 const INITIAL_SESSION = {
   messages: [],
@@ -25,29 +26,24 @@ bot.command("new", async (context) => {
 });
 
 bot.on(message("voice"), async (context) => {
+  const loader = new Loader(context);
   context.session ??= INITIAL_SESSION;
   try {
-    const systemMessage = await context.reply(
-      code("Сообщение принял, жду ответ от сервера...")
-    );
-
+    await loader.show();
     const link = await context.telegram.getFileLink(
       context.message.voice.file_id
     );
     const userId = String(context.message.from.id);
     const oggPath = await ogg.create(link.href, userId);
     const mp3Path = await ogg.toMp3(oggPath, userId);
-
-    await context.telegram.deleteMessage(
-      context.chat.id,
-      systemMessage.message_id
-    );
     const text = await openAi.transcription(mp3Path);
 
     context.session.messages.push({ role: openAi.roles.USER, content: text });
     const response = await openAi.chat(context.session.messages);
 
     await context.reply(code(`Вот ответ на ваш запрос: \n ${text}`));
+    loader.hide();
+
     context.session.messages.push({
       role: openAi.roles.ASSISTANT,
       content: response.content,
@@ -60,28 +56,21 @@ bot.on(message("voice"), async (context) => {
 });
 
 bot.on(message("text"), async (context) => {
+  const loader = new Loader(context);
   context.session ??= INITIAL_SESSION;
   try {
-    const systemMessage = await context.reply(
-      code("Сообщение принял, жду ответ от сервера...")
-    );
-
+    await loader.show();
     context.session.messages.push({
       role: openAi.roles.USER,
       content: context.message.text,
     });
 
     const response = await openAi.chat(context.session.messages);
-
-    await context.telegram.deleteMessage(
-      context.chat.id,
-      systemMessage.message_id
-    );
-
     await context.reply(
       code(`Вот ответ на ваш запрос: \n ${context.message.text}`)
     );
 
+    loader.hide();
     context.session.messages.push({
       role: openAi.roles.ASSISTANT,
       content: response.content,
@@ -91,10 +80,6 @@ bot.on(message("text"), async (context) => {
   } catch (error) {
     console.log("Error while voice message", error.message);
   }
-});
-
-bot.command("start", async (context) => {
-  await context.reply(JSON.stringify(context.message, null, 2));
 });
 
 bot.launch();
