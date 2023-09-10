@@ -1,5 +1,5 @@
 export class Loader {
-  icons = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
+  icons = ["L", "LO", "LOA", "LOAD"];
   message = null;
   interval = null;
 
